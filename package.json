@@ -5,8 +5,9 @@
   "main": "src/index.js",
   "scripts": {
     "test": "snazzy",
-    "build": "webpack --watch --config webpack.config.js",
-    "start": "cd server && nodemon babel.app"
+    "dev-app": "webpack --watch --config webpack.config.js",
+    "dev-server": "cd server && nodemon babel.app",
+    "start": "npm-run-all -p dev-app dev-server"
   },
   "author": "Coeuvre Wong <coeuvre@gmail.com>",
   "license": "MIT",
@@ -21,6 +22,7 @@
     "file-loader": "^0.9.0",
     "html-webpack-plugin": "^2.24.1",
     "nodemon": "^1.11.0",
+    "npm-run-all": "^3.1.2",
     "pixi.js": "^4.2.3",
     "snazzy": "^5.0.0",
     "standard": "^8.6.0",

@@ -8,4 +8,3 @@ const root = path.resolve(__dirname, '..', 'dist', 'app')
 app.use(serve(root))
 
 app.listen(3000)
-
