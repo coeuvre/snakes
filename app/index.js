@@ -56,7 +56,7 @@ function setup () {
 
   state.snake = new Snake(stage)
 
-  for (let i = 0; i < 20; ++i) {
+  for (let i = 0; i < 100; ++i) {
     state.snake.grow()
   }
 
@@ -87,6 +87,8 @@ function render (state, stage) {
 class SnakeNode {
   constructor (stage) {
     this.pos = new Vec2(0, 0)
+    this.dir = new Vec2(0, 0)
+    this.pivot = []
     this.prev = undefined
     this.next = undefined
 
@@ -102,7 +104,7 @@ class SnakeNode {
   }
 }
 
-const SNAKE_NODE_MAX_DISTANCE = 16
+const SNAKE_NODE_MAX_DISTANCE = 8
 
 class Snake {
   constructor (stage) {
@@ -110,13 +112,12 @@ class Snake {
     this.tail = this.head
     this.size = 1
     this.vel = 3.0
-    this.dir = new Vec2(0, 0)
     this.stage = stage
   }
 
   grow (stage) {
     const node = new SnakeNode(this.stage)
-    node.pos = this.tail.pos
+    node.pos = this.tail.pos.add(this.tail.dir.neg().mul(SNAKE_NODE_MAX_DISTANCE))
 
     node.prev = this.tail
     this.tail.next = node
@@ -124,8 +125,28 @@ class Snake {
   }
 
   update (state) {
-    this.head.pos = state.mouse.pos
-    adjustSnakeNode(this.head.next)
+    const distance = state.mouse.pos.sub(this.head.pos)
+    if (distance.length() !== 0) {
+      let dir = distance.normalize()
+
+      const MAX_CHANGE_DEGREE = 6
+      if (dir.degree(this.head.dir) > MAX_CHANGE_DEGREE || this.head.dir.neg().eq(dir)) {
+        if (dir.cross(this.head.dir) > 0) {
+          dir = this.head.dir.rotateDegree(-MAX_CHANGE_DEGREE)
+        } else {
+          dir = this.head.dir.rotateDegree(MAX_CHANGE_DEGREE)
+        }
+      }
+
+      if (dir.radian() !== this.head.dir.radian()) {
+        this.head.dir = dir
+        this.head.pivot.push(this.head.pos)
+      }
+    }
+
+    this.head.pos = this.head.pos.add(this.head.dir.mul(this.vel))
+
+    adjustSnakeNode(this, this.head.next)
   }
 
   render () {
@@ -137,41 +158,36 @@ class Snake {
   }
 }
 
-function adjustSnakeNode (node) {
+function adjustSnakeNode (snake, node) {
   if (!node) {
     return
   }
 
-  const prev = node.prev
+  const forward = node.prev
+  let dir
+  let target
 
-  if (prev.prev) {
-    const pprev = prev.prev
-    const v1 = pprev.pos.sub(prev.pos)
-    const v2 = node.pos.sub(prev.pos)
-    const SNAKE_NODE_MIN_DEGREE = 120
-    const SNAKE_NODE_MIN_RADIAN = SNAKE_NODE_MIN_DEGREE / 180.0 * Math.PI
-    if (v1.degree(v2) < SNAKE_NODE_MIN_DEGREE) {
-      const xaxis = v1.normalize()
-      const yaxis = xaxis.perp()
-
-      let rad = SNAKE_NODE_MIN_RADIAN
-      if (v1.cross(v2) < 0) {
-        rad = -SNAKE_NODE_MIN_RADIAN
-      }
-      const newV2 = xaxis.mul(Math.cos(rad))
-                         .add(yaxis.mul(Math.sin(rad)))
-      node.pos = prev.pos.add(newV2.mul(v2.length()))
-    }
-    // console.log(v1.degree(v2))
+  if (forward.pivot.length > 0) {
+    target = forward.pivot[0]
+    dir = target.sub(node.pos).normalize()
+  } else {
+    target = forward.pos
+    dir = target.sub(node.pos).normalize()
   }
 
-  if (prev) {
-    const distance = node.pos.sub(prev.pos)
-    if (distance.length() > SNAKE_NODE_MAX_DISTANCE) {
-      const dir = distance.normalize()
-      node.pos = prev.pos.add(dir.mul(SNAKE_NODE_MAX_DISTANCE))
+  if (node.dir.radian() !== dir.radian()) {
+    node.pivot.push(node.pos)
+  }
+
+  node.pos = node.pos.add(dir.mul(snake.vel))
+  node.dir = dir
+
+  if (forward.pivot.length > 0) {
+    if (node.pos.sub(target).length() < snake.vel) {
+      node.pos = target
+      forward.pivot = forward.pivot.slice(1)
     }
   }
 
-  adjustSnakeNode(node.next)
+  adjustSnakeNode(snake, node.next)
 }

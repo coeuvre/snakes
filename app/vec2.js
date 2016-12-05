@@ -4,6 +4,10 @@ class Vec2 {
     this.y = y || 0
   }
 
+  neg () {
+    return new Vec2(-this.x, -this.y)
+  }
+
   add (rhs) {
     return new Vec2(this.x + rhs.x, this.y + rhs.y)
   }
@@ -47,6 +51,20 @@ class Vec2 {
 
   degree (rhs) {
     return this.radian(rhs) / Math.PI * 180.0
+  }
+
+  rotate (rad) {
+    const xaxis = this.normalize()
+    const yaxis = xaxis.perp()
+    return xaxis.mul(Math.cos(rad)).add(yaxis.mul(Math.sin(rad)))
+  }
+
+  rotateDegree (degree) {
+    return this.rotate(degree / 180.0 * Math.PI)
+  }
+
+  eq (rhs) {
+    return Math.abs(this.x - rhs.x) < 0.00001 && Math.abs(this.y - rhs.y) < 0.00001
   }
 }
 
